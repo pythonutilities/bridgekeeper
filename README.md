@@ -45,5 +45,39 @@ results = check_models(
 )
 ```
 
+## Handling Complex Apps (Databases/Secrets)
+
+If your FastAPI or Flask app connects to a database (like Postgres) or external service (like Redis) during initialization, trying to run `bridgekeeper` in a GitHub Action might crash when the app imports, before the tests even run.
+
+Bridgekeeper provides generic mocking utilities to safely bypass these side effects:
+
+```python
+from bridgekeeper import mock_modules, mock_env
+
+# 1. Mock critical environment variables
+mock_env({
+    "DATABASE_URL": "sqlite:///:memory:",
+    "SECRET_KEY": "dummy_secret_for_ci"
+})
+
+# 2. Mock external services completely BEFORE importing the app
+# You can pass a List of module names to auto-apply MagicMock
+mock_modules([
+    "app.core.db",
+    "redis",
+    "fastapi_cache",
+    "boto3"
+])
+
+# Or pass a Dictionary if you want to provide your own mock instances
+# mock_modules({"app.core.db": PostgresTestDb})
+
+# 3. Now it is safe to import the app
+from myapp.main import app
+from bridgekeeper import check_models
+
+results = check_models(app)
+```
+
 ## Why the name bridgekeeper?  
 He guards the [Bridge of Death](https://montypython.fandom.com/wiki/Bridge_of_Death) and requires travelers to answer "questions three" before crossing safely.
