@@ -19,7 +19,8 @@ dev = [
     "pytest",
     "flask",
     "fastapi",
-    "pydantic"
+    "pydantic",
+    "mypy"
 ]
 
 [tool.pytest.ini_options]
