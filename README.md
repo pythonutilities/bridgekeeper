@@ -75,5 +75,18 @@ from bridgekeeper import check_models
 results = check_models(app)
 ```
 
+### Caveats & Limitations of Auto Mocking
+
+While `auto_mock_missing=True` is powerful, it only safely stubs modules that your app imports but **never actually uses at import time**. Since the mocked modules return `MagicMock` instances, they cannot seamlessly replace core architectural dependencies during class definition or route evaluation. 
+
+For highly complex applications (like those interacting with massive ORMs or custom routing), you may still need to install your true dependency tree (e.g. via `poetry install`) because:
+
+1. **Pydantic/FastAPI**: `check_models` inspects the real Pydantic classes on each route. If you mock them, it can't tell a valid model from a non-model.
+2. **Type Validation (e.g. email-validator)**: If a model uses `EmailStr`, it requires the real dependency.
+3. **Core App Configurations**: If routing relies on variables like `settings.API_V1_STR` and it becomes a `MagicMock`, it produces invalid route paths (e.g. `<MagicMock>/openapi.json`).
+4. **SQLAlchemy Declarative Base**: If your database models subclass a real SQLAlchemy declarative base, a mocked `Base` throws a metaclass conflict at class-definition time. This is unmockable in principle.
+
+**The Solution:** For these complex scenarios, the maintainable choice is to install your full dependency tree (leveraging caching like `poetry` venv caching to speed up CI) and use `mock_env` strictly for bypassing secrets or cloud credentials without hitting the network.
+
 ## Why the name bridgekeeper?  
 He guards the [Bridge of Death](https://montypython.fandom.com/wiki/Bridge_of_Death) and requires travelers to answer "questions three" before crossing safely.
