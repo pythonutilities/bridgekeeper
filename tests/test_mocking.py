@@ -10,6 +10,7 @@ def test_mock_modules_list() -> None:
         
     mock_modules(["dummy_module_1"])
     
+    import dummy_module_1  # type: ignore
     assert "dummy_module_1" in sys.modules
     assert isinstance(sys.modules["dummy_module_1"], MagicMock)
 
@@ -26,6 +27,8 @@ def test_mock_modules_dict() -> None:
         "dummy_module_3": custom_mock    # Should be custom_mock
     })
     
+    import dummy_module_2  # type: ignore
+    import dummy_module_3  # type: ignore
     assert "dummy_module_2" in sys.modules
     assert isinstance(sys.modules["dummy_module_2"], MagicMock)
     
@@ -40,5 +43,23 @@ def test_mock_env() -> None:
     
     assert os.environ.get("DUMMY_ENV_VAR") == "secret_value"
     
-    # Cleanup
-    del os.environ["DUMMY_ENV_VAR"]
+def test_auto_mock_missing() -> None:
+    # Ensure a truly non-existent module is not there
+    non_existent = "some_crazy_non_existent_module_name"
+    if non_existent in sys.modules:
+        del sys.modules[non_existent]
+        
+    # Standard import should fail
+    try:
+        import some_crazy_non_existent_module_name  # type: ignore
+        assert False, "Should have raised ImportError"
+    except ImportError:
+        pass
+        
+    # Now enable auto_mock_missing
+    mock_modules(auto_mock_missing=True)
+    
+    # Standard import should now succeed and return a MagicMock!
+    import some_crazy_non_existent_module_name  # type: ignore
+    assert "some_crazy_non_existent_module_name" in sys.modules
+    assert isinstance(sys.modules["some_crazy_non_existent_module_name"], MagicMock)
