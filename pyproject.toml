@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "api-bridgekeeper"
+version = "0.1.0"
+description = "Fail tests if APIs do not have input or output models"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Ashish Thomas Cherian", email = "ufoundashish@gmail.com" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "flask",
+    "fastapi",
+    "pydantic",
+    "mypy"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
