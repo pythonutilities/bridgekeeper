@@ -120,6 +120,10 @@ def check_models(
                 elif hasattr(route, 'app') and hasattr(route.app, 'routes'):
                     _process_routes(route.app.routes, route_path)
                     continue
+                elif hasattr(route, 'include_context') and hasattr(route, 'original_router') and hasattr(route.original_router, 'routes'):
+                    included_prefix = getattr(route.include_context, 'prefix', '')
+                    _process_routes(route.original_router.routes, prefix + included_prefix)
+                    continue
                 elif hasattr(route, 'original_router') and hasattr(route.original_router, 'routes'):
                     _process_routes(route.original_router.routes, route_path)
                     continue
