@@ -1,0 +1,42 @@
+name: PyPI Version Verification
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  verify-pypi-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Check if version is published to PyPI
+        run: |
+          # Extract the package name and version from pyproject.toml
+          PACKAGE_NAME=$(grep -E '^name\s*=\s*' pyproject.toml | sed -E 's/name\s*=\s*"([^"]+)"/\1/')
+          VERSION=$(grep -E '^version\s*=\s*' pyproject.toml | sed -E 's/version\s*=\s*"([^"]+)"/\1/')
+          
+          echo "Checking if $PACKAGE_NAME version $VERSION is published to PyPI..."
+          
+          # Fetch package info from PyPI
+          HTTP_STATUS=$(curl -s -o package_info.json -w "%{http_code}" https://pypi.org/pypi/$PACKAGE_NAME/json)
+          
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Error: Package $PACKAGE_NAME not found on PyPI (HTTP $HTTP_STATUS). You must publish it first!"
+            exit 1
+          fi
+          
+          # Check if the specific version exists in the releases
+          VERSION_EXISTS=$(jq -r --arg ver "$VERSION" '.releases | has($ver)' package_info.json)
+          
+          if [ "$VERSION_EXISTS" = "true" ]; then
+            echo "Success! Version $VERSION is deployed to PyPI."
+            exit 0
+          else
+            echo "Error: Version $VERSION of $PACKAGE_NAME is NOT deployed to PyPI yet."
+            echo "Please manually publish the package to PyPI before merging this pull request to main."
+            exit 1
+          fi
