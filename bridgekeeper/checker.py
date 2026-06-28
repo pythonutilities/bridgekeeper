@@ -10,6 +10,11 @@ class MissingResult(TypedDict):
 
 def _get_relative_path(func: Callable[..., Any]) -> str:
     try:
+        # Unwrap standard decorators
+        func = inspect.unwrap(func)
+        # Unwrap functools.partial
+        if hasattr(func, 'func'):
+            func = func.func
         abs_path = inspect.getfile(func)
         return os.path.relpath(abs_path, os.getcwd())
     except (TypeError, ValueError):
