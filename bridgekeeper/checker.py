@@ -104,19 +104,32 @@ def check_models(
             process_missing(api_path, view_func)
                 
     elif hasattr(app, 'routes'):
-        for route in getattr(app, 'routes', []):
-            if not hasattr(route, 'endpoint'):
-                continue
+        def _process_routes(routes, prefix=''):
+            for route in routes:
+                route_path = prefix + getattr(route, 'path', '')
                 
-            api_path = getattr(route, 'path', '')
-            if api_path in allow_list:
-                continue
+                # FastAPI / Starlette Mount or IncludedRouter
+                if hasattr(route, 'routes'):
+                    _process_routes(route.routes, route_path)
+                    continue
+                elif hasattr(route, 'app') and hasattr(route.app, 'routes'):
+                    _process_routes(route.app.routes, route_path)
+                    continue
+                elif hasattr(route, 'original_router') and hasattr(route.original_router, 'routes'):
+                    _process_routes(route.original_router.routes, route_path)
+                    continue
+                    
+                if not hasattr(route, 'endpoint'):
+                    continue
+                    
+                if route_path in allow_list:
+                    continue
+                    
+                endpoint = getattr(route, 'endpoint')
+                has_response_model = getattr(route, 'response_model', None) is not None
                 
-            endpoint = getattr(route, 'endpoint')
-            
-            # FastAPI specific: check if response_model is explicitly set
-            has_response_model = getattr(route, 'response_model', None) is not None
-            
-            process_missing(api_path, endpoint, explicit_has_response=has_response_model)
+                process_missing(route_path, endpoint, explicit_has_response=has_response_model)
+
+        _process_routes(getattr(app, 'routes', []))
                 
     return results
