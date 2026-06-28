@@ -49,6 +49,9 @@ def test_auto_mock_missing() -> None:
     if non_existent in sys.modules:
         del sys.modules[non_existent]
         
+    # Clear out the fallback mock finder if previous tests added it
+    sys.meta_path = [m for m in sys.meta_path if type(m).__name__ != '_FallbackMockFinder']
+        
     # Standard import should fail
     try:
         import some_crazy_non_existent_module_name  # type: ignore
