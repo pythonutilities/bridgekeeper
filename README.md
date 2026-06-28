@@ -49,7 +49,7 @@ results = check_models(
 
 If your FastAPI or Flask app connects to a database (like Postgres) or external service (like Redis) during initialization, trying to run `bridgekeeper` in a GitHub Action might crash when the app imports, before the tests even run.
 
-Bridgekeeper provides generic mocking utilities to safely bypass these side effects:
+Bridgekeeper provides generic mocking utilities to safely bypass these side effects. For highly complex apps where you don't want to list out every single dependency, you can use `auto_mock_missing=True` to seamlessly mock any module that isn't installed!
 
 ```python
 from bridgekeeper import mock_modules, mock_env
@@ -60,17 +60,13 @@ mock_env({
     "SECRET_KEY": "dummy_secret_for_ci"
 })
 
-# 2. Mock external services completely BEFORE importing the app
-# You can pass a List of module names to auto-apply MagicMock
-mock_modules([
-    "app.core.db",
-    "redis",
-    "fastapi_cache",
-    "boto3"
-])
+# 2. Automatically mock ANY missing dependency!
+# This is extremely useful if you don't want to install heavy libraries (like SQLAlchemy, boto3, etc.)
+# just to run a quick static analysis check.
+mock_modules(auto_mock_missing=True)
 
-# Or pass a Dictionary if you want to provide your own mock instances
-# mock_modules({"app.core.db": PostgresTestDb})
+# You can also explicitly mock specific modules with custom fakes:
+# mock_modules({"app.core.db": PostgresTestDb}, auto_mock_missing=True)
 
 # 3. Now it is safe to import the app
 from myapp.main import app
