@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "api-bridgekeeper"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fail tests if APIs do not have input or output models"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -13,6 +13,10 @@ authors = [
     { name = "Ashish Thomas Cherian", email = "ufoundashish@gmail.com" }
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/pythonutilities/bridgekeeper"
+Repository = "https://github.com/pythonutilities/bridgekeeper"
 
 [project.optional-dependencies]
 dev = [
