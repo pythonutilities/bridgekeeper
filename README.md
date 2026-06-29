@@ -90,3 +90,113 @@ For highly complex applications (like those interacting with massive ORMs or cus
 
 ## Why the name bridgekeeper?  
 He guards the [Bridge of Death](https://montypython.fandom.com/wiki/Bridge_of_Death) and requires travelers to answer "questions three" before crossing safely.
+
+## GitHub Actions Integration
+
+If you want to enforce that all pull requests have strictly typed endpoints, you can add `api-bridgekeeper` directly to your CI/CD pipeline. 
+
+For complex projects, you may want to install your full dependency tree (e.g., via `poetry`) and mock out network calls or secrets manually before running `check_models`.
+
+Here is an example `.github/workflows/api-schema-check.yml` that only runs when backend files change, installs dependencies, mocks out cloud secrets, and enforces the schema rules:
+
+```yaml
+name: API Schema Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  api-schema-check:
+    name: api-schema-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}
+
+      - name: Check for backend changes
+        id: check
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'backend/' | head -1)
+          if [ -n "$CHANGED" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No backend changes — skipping API schema check"
+          fi
+
+      - name: Set up Python
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        if: steps.check.outputs.changed == 'true'
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv venv
+          source venv/bin/activate
+          pip install poetry==1.8.5
+          
+          poetry config virtualenvs.create false
+          poetry install --no-root
+          
+          # Install bridgekeeper in the action
+          pip install api-bridgekeeper
+          deactivate
+
+      - name: Run API schema check (api-bridgekeeper)
+        if: steps.check.outputs.changed == 'true'
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend:${{ github.workspace }}/backend/app
+        run: |
+          source venv/bin/activate
+          python - <<'PY'
+          import sys
+          from unittest import mock
+
+          # Example: Mock out external secrets managers or cloud calls that happen at import time
+          # mock.patch("your_app.secrets.AWSSecretsManager.get_secret", return_value="dummy").start()
+
+          from bridgekeeper import check_models
+          from app.main import app
+
+          # Endpoints that currently lack a request/response model. 
+          # New endpoints NOT in this list must declare typed models or this check fails.
+          ALLOW_LIST = [
+              "/api/legacy-endpoint/",
+              "/api/health/",
+          ]
+
+          results = check_models(app, allow_list=ALLOW_LIST)
+
+          if not results:
+              print("✅ All API endpoints declare request/response models "
+                    f"(allow-list exempts {len(ALLOW_LIST)} known gaps).")
+              sys.exit(0)
+
+          print(f"❌ {len(results)} endpoint(s) are missing typed models:\n")
+          for r in results:
+              missing = ", ".join(r["missing"])
+              print(f"  {r['api']}")
+              print(f"      missing: {missing}   ({r['file']})")
+          
+          print(
+              "\nDeclare a Pydantic model for the request body and/or pass "
+              "`response_model=` when registering the route. If a gap is "
+              "intentional, add the path to ALLOW_LIST in the workflow file."
+          )
+          sys.exit(1)
+          PY
+          deactivate
+```
