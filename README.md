@@ -5,6 +5,14 @@ Fail tests if API's do not have input or output models
 - FastAPI
 - Flask
 
+## Current Scope & Philosophy
+
+*Note: `api-bridgekeeper` is currently designed as an **engine**, not a fully-featured drop-in CLI tool.*
+
+Right now, getting a complex app properly imported in CI is 90% of the work. As such, Bridgekeeper provides the underlying checking engine (`check_models`) which you are expected to embed into your own Python CI scripts (see the GitHub Actions example below) rather than providing a magic `bridgekeeper check` command. 
+
+Future roadmaps include a full CLI, baseline modes, and glob pattern matching for allow-lists, but for now, you adopt the engine and build the car yourself.
+
 ## Usage
 
 You can use Bridgekeeper to validate your API endpoints and ensure they have explicitly typed input and output models. 
