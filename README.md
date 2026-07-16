@@ -1,5 +1,5 @@
 # Bridgekeeper
-[![PyPI version](https://img.shields.io/pypi/v/api-bridgekeeper.svg)](https://pypi.org/project/api-bridgekeeper/)
+[![PyPI version](https://img.shields.io/pypi/v/api-bridgekeeper.svg)](https://pypi.org/project/api-bridgekeeper/)  
 Fail tests if API's do not have input or output models  
 
 **Supports:**
